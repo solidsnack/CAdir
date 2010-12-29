@@ -1,0 +1,41 @@
+#!/bin/bash
+set -o nounset -o pipefail -o errexit -o privileged
+function usage {
+cat <<USAGE
+ USAGE: CAdir <directory>
+
+  Perform CA operations (given on STDIN) on the directory.
+USAGE
+}
+
+case "${1:-}" in
+  -h|'-?'|--help)   usage ; exit 0 ;;
+  "")               echo 'No directory given.' 1>&2 ; exit 1 ;;
+  *)                cd "$1"  ;;
+esac
+
+
+## Logging niceties.
+
+function timestamp {
+  date --utc +%FT%TZ
+}
+function log {
+  logger -p user.$2 -- "$1"
+  printf "%s\n" -- "$(timestamp) $1"
+}
+function msg {
+  log "$1" info 1>&2
+}
+function err {
+  log "$1" err
+  exit 1
+}
+
+
+
+function lockingly {
+  ( flock --exclusive 1
+    ) 1>./CAdir/log 2>&1
+}
+

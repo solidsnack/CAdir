@@ -1,0 +1,39 @@
+
+  CAdir is a script for managing an x509 Certificate Authority, offering
+  request signing and queries of the CA.
+
+  CAdir receives the request or query parameters on standard in, locks the CA
+  with a POSIX lock and performs the requested action. One use case for CAdir
+  is as an SSH forced command, allowing nodes in a cluster of computers to
+  concurrently make authenticated requests of the CA.
+
+
+                                                              Command Language
+   ----------------------------------------------------------------------------
+
+    <request>     = sign -- <request bytes>   # Sign the request.
+                  | signCA -- <request bytes> # Sign the request as a CA.
+                  | crl                       # Get the CRL.
+                  | cert                      # Get the CA cert.
+
+
+                                                                    Dir Layout
+   ----------------------------------------------------------------------------
+
+    Dir layout should be close to the default layout of OpenSSL's CA tools.
+    One additional directory is created in the CA's directory, `CAdir', that
+    contains locks, logs and configuration.
+
+      demoCA/CAdir/log
+                  /lock
+                  /syslog     # Log to syslog if this file contains "true".
+
+    If the directory `conf' exists, either in the CA's directory or under
+    `CAdir', it is searched for files with names like `extensions' and other
+    CA sounding names; these are used as options for the requests based on
+    their names.
+
+      demoCA/conf/extensions
+                 /openssl.cnf
+                 /...other OpenSSL files...
+
