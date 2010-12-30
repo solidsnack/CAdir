@@ -8,11 +8,14 @@ cat <<USAGE
 USAGE
 }
 
-declare -A CAdir=( [root]="" )
+declare -A CAdir=( [root]="" [output]=stdout )
 while [[ "${1:-}" != "" ]]
 do
   case "${1:-}" in
     -h|'-?'|--help) usage ; exit 0 ;;
+    --syslog)       CAdir[output]=syslog ;;
+    --stdout)       CAdir[output]=stdout ;;
+    --quiet)        CAdir[output]=quiet ;;
     *)              CAdir[root]="$1" ;;
   esac
   shift
@@ -29,6 +32,7 @@ function msg        {           printf "%s\n" "$(timestamp) -CAdir- $1" 1>&2 ;}
 function info       {           msg "$1"                                     ;}
 function err        {           msg "$1" ; exit 1                            ;}
 function locktee    {           flock -w 0.5 -x ./$d/log tee -a ./$d/log     ;}
+function syslog     {           logger -i -t CAdir -p user.info              ;}
 
 
 function respond {
@@ -53,5 +57,9 @@ function main {
 }
 
 
-main 2>&1 | stripstamp
+main 2>&1 | stripstamp | case ${CAdir[output]} in
+                           stdout)      cat ;;
+                           syslog)      syslog ;;
+                           quiet)       cat >/dev/null ;;
+                         esac
 
