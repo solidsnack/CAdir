@@ -47,7 +47,7 @@ function main {
   info "Locking \`./$d/log'."
   { info "((( New request."
     info "User is \`$(whoami)'."
-    respond 1>&2 ## How horrible that in shell the interesting part goes here.
+    respond 1>&2
     info "))) Finished."                                 ;} 2>&1 | locktee
   info "Unlocked."
 }
