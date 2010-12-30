@@ -8,64 +8,50 @@ cat <<USAGE
 USAGE
 }
 
-declare -A CAdir=( [--syslog]=true [root]="" )
+declare -A CAdir=( [root]="" )
 while [[ "${1:-}" != "" ]]
 do
   case "${1:-}" in
     -h|'-?'|--help) usage ; exit 0 ;;
-    --syslog)       CAdir[--syslog]=true ;;
-    --no-syslog)    CAdir[--syslog]=false ;;
     *)              CAdir[root]="$1" ;;
   esac
   shift
 done
 
+d=CAdir
+
 
 ## Logging niceties.
 
-function timestamp {
-  date --utc +%FT%TZ
-}
-function syslog {
-  if ${CAdir[--syslog]}
-  then
-    sed -r 's/^.{20} -CAdir- //' | logger -i -p user.info
-  else
-    cat > /dev/null
-  fi
-}
-function lockedlog {
-  flock --timeout 0.5 --exclusive ./CAdir/log tee ./CAdir/log 
-}
+function timestamp  {           date --utc +%FT%TZ                           ;}
+function stripstamp {           sed -r 's/^.{19}Z -CAdir- //'                ;}
+function msg        {           printf "%s\n" "$(timestamp) -CAdir- $1" 1>&2 ;}
+function info       {           msg "$1"                                     ;}
+function err        {           msg "$1" ; exit 1                            ;}
+function locktee    {           flock -w 0.5 -x ./$d/log tee -a ./$d/log     ;}
 
-function msg {
-  printf "%s\n" -- "$(timestamp) -CAdir- $1"
-}
-function info {
-  msg "$1"
-}
-function err {
-  msg "$1"
-  exit 1
-}
 
+function respond {
+  wc -l
+}
 
 function main {
-  { [[ -n "${CAdir[root]}" ]] || err "No CA dir given."
-    if cd "${CAdir[root]}" 2>&1
-    then
-      info "Changed directory to \`${CAdir[root]}'."
-    else
-      err "Failed to change directory to \`${CAdir[root]}'."
-    fi
-    [[ -d ./CAdir ]] || { info "Creating \`./CAdir/log'."
-                          mkdir -p ./CAdir 2>&1           ;} 
-    info "Locking \`./CAdir/log'."
-    { info "User is \`$(whoami)'."
-      wc -l 1>&2
-      info "Finished."            ;} | lockedlog
-    info "Unlocked."                                          ;} | syslog
+  [[ -n "${CAdir[root]}" ]] || err "No CA dir given."
+  if cd "${CAdir[root]}" 1>/dev/null 2>&1
+  then
+    info "Changed directory to \`${CAdir[root]}'."
+  else
+    err "Failed to change directory to \`${CAdir[root]}'."
+  fi
+  [[ -d ./$d ]] || { info "Creating \`./$d'." ; mkdir -p ./$d ;}
+  info "Locking \`./$d/log'."
+  { info "((( New request."
+    info "User is \`$(whoami)'."
+    respond 1>&2 ## How horrible that in shell the interesting part goes here.
+    info "))) Finished."                                 ;} 2>&1 | locktee
+  info "Unlocked."
 }
 
-main
+
+main 2>&1 | stripstamp
 
