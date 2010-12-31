@@ -11,8 +11,8 @@
                                                               Command Language
    ----------------------------------------------------------------------------
 
-    <request>     = sign -- <request bytes>   # Sign the request.
-                  | signCA -- <request bytes> # Sign the request as a CA.
+    <request>     = sign :<request bytes>     # Sign the request.
+                  | sign CA :<request bytes>  # Sign as a subordinate CA.
                   | crl                       # Get the CRL.
                   | cert                      # Get the CA cert.
 
