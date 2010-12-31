@@ -35,11 +35,49 @@ function locktee    {           flock -w 0.5 -x ./$d/log tee -a ./$d/log     ;}
 function syslog     {           logger -i -t CAdir -p user.info              ;}
 
 
-function respond {
-  wc -l
+declare -a CAdirOP
+declare -a CAdirERR
+function setup_request {
+  local -a argv
+  read -r -d: -n20 -a argv || true # Short, unterminated input; not a problem.
+  if [[ -z "${argv+unset}" ]]
+  then
+    CAdirERR='Malformed request.'
+  else
+    set -- "${argv[@]}"
+    case "${1:-}" in
+      crl|cert)     shift ;;
+      sign)         shift
+                    case "${1:-}" in
+                      CA)       shift ;;
+                      '')       : ;;
+                    esac ;;
+      *)            CAdirERR='Invalid request type.' ;;
+    esac
+  fi
+  if [[ -z "${CAdirERR:+unset}" ]]
+  then
+    if [[ "$#" = 0 ]]
+    then
+      CAdirOP="${argv[@]}" # All arguments consumed; request is valid.
+    else
+      CAdirERR='Invalid arg for request.' # Bad request.
+    fi
+  fi
 }
 
+function perform_request {
+  case "${CAdirOP[0]}" in
+    sign) ;;
+    signCA) ;;
+    crl);;
+    cert) ;;
+  esac
+}
+
+
 function main {
+  info "Request received; user is \`$(whoami)'."
   [[ -n "${CAdir[root]}" ]] || err "No CA dir given."
   if cd "${CAdir[root]}" 1>/dev/null 2>&1
   then
@@ -48,10 +86,11 @@ function main {
     err "Failed to change directory to \`${CAdir[root]}'."
   fi
   [[ -d ./$d ]] || { info "Creating \`./$d'." ; mkdir -p ./$d ;}
+  setup_request
+  [[ -z "${CAdirERR:-}" ]] || err "$CAdirERR"
   info "Locking \`./$d/log'."
-  { info "((( New request."
-    info "User is \`$(whoami)'."
-    respond 1>&2
+  { info "((( Request \`${CAdirOP[0]}' for user \`$(whoami)'."
+    info "$(echo command: "${CAdirOP[@]}")"
     info "))) Finished."                                 ;} 2>&1 | locktee
   info "Unlocked."
 }
