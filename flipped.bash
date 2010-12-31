@@ -5,7 +5,7 @@ function msg {
   echo "o: $1"
 }
 
-exec 3>&1
+exec 3>&1 # We 'open' file descriptor 3 this way.
 ( for x in a b c
   do
     msg "$x"
