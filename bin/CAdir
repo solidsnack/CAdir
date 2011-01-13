@@ -32,8 +32,8 @@ function info       {           msg "$1"                                     ;}
 function err        {           msg "$1" ; return 1                          ;}
 function locktee    {           flock -w 0.5 -x ./$d/log tee -a ./$d/log     ;}
 function syslog     {           logger -i -t CAdir -p user.info              ;}
-function outERR     {           echo "ERR ${CAdir[uuid]}    $@"          ;}
-function outOK      {           echo "OK  ${CAdir[uuid]}    $@"          ;}
+function outERR     {           echo "ERR ${CAdir[uuid]}    $@"              ;}
+function outOK      {           echo "OK  ${CAdir[uuid]}    $@"              ;}
 
 
 declare -a CAdirOP
