@@ -26,14 +26,14 @@ d=CAdir
 
 ## Logging niceties.
 
-function stamp      {           date --utc +%FT%T.%NZ                        ;}
+function stamp      {           date --utc +%FT%T.%4NZ                       ;}
 function msg        {           printf "%s\n" "$1" 1>&2                      ;}
 function info       {           msg "$1"                                     ;}
 function err        {           msg "$1" ; return 1                          ;}
 function locktee    {           flock -w 0.5 -x ./$d/log tee -a ./$d/log     ;}
 function syslog     {           logger -i -t CAdir -p user.info              ;}
-function outERR     {           echo '!' ${CAdir[uuid]} "$@"                 ;}
-function outOK      {           echo '+' ${CAdir[uuid]} "$@"                 ;}
+function outERR     {           echo "ERR ${CAdir[uuid]}    $@"          ;}
+function outOK      {           echo "OK  ${CAdir[uuid]}    $@"          ;}
 
 
 declare -a CAdirOP
@@ -47,7 +47,7 @@ function setup_request {
   else
     set -- "${argv[@]}"
     case "${1:-}" in
-      crl|cert)     shift ;;
+      cert)         shift ;;
       sign)         shift
                     case "${1:-}" in
                       CA)       shift ;;
@@ -68,12 +68,20 @@ function setup_request {
 }
 
 function perform_request {
+  local txt
   case "${CAdirOP[0]}" in
-    sign) echo '>> sign' ;;
-    crl)  echo '>> crl' ;;
-#   cert) echo '>> cert' ;;
+    #sign) outOK 'sign' ;;
+    cert) txt=$(cat ./cacert.pem) ;;
     *)    CAdirERR='Bad request.' ; return 1 ;;
   esac
+  if [[ 0 != $? ]]
+  then
+    CAdirERR='Processing error.'
+    err "Exit status \`$?'."
+  else
+    outOK "${CAdirOP[0]}"
+    cat <<<"$txt"
+  fi
 }
 
 
