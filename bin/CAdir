@@ -2,21 +2,21 @@
 set -o nounset -o pipefail -o errexit -o privileged
 function usage {
 cat <<USAGE
- USAGE: CAdir <directory>
+ USAGE: CAdir setup <directory>
+        CAdir (serve)? (--syslog|--stdout|--quiet)? <directory>
 
   Perform CA operations (given on STDIN) on the directory.
 USAGE
 }
 
-declare -A CAdir=( [root]="" [output]=stdout )
+declare -A CAdir=( [root]="" [output]=stdout [task]=serve )
 while [[ "${1:-}" != "" ]]
 do
   case "${1:-}" in
-    -h|'-?'|--help) usage ; exit 0 ;;
-    --syslog)       CAdir[output]=syslog ;;
-    --stdout)       CAdir[output]=stdout ;;
-    --quiet)        CAdir[output]=quiet ;;
-    *)              CAdir[root]="$1" ;;
+    -h|'-?'|--help)                     usage ; exit 0 ;;
+    --syslog|--stdout|--quiet)          CAdir[output]=${1#--} ;;
+    /*|~/*|./*|../*)                    CAdir[root]="$1" ;;
+    serve|setup)                        CAdir[task]=$1 ;;
   esac
   shift
 done
@@ -114,11 +114,13 @@ function main {
   info "Unlocked."
 }
 
-
-exec 3>&1
-main 2>&1 1>&3 | case ${CAdir[output]} in
-                   stdout)      cat ;;
-                   syslog)      syslog ;;
-                   quiet)       cat >/dev/null ;;
-                 esac 3>&1 1>&2
+case ${CAdir[task]} in
+  serve)  exec 3>&1
+          main 2>&1 1>&3 | case ${CAdir[output]} in
+                             stdout)      cat ;;
+                             syslog)      syslog ;;
+                             quiet)       cat >/dev/null ;;
+                           esac 3>&1 1>&2 ;;
+  setup) ;;
+esac
 
