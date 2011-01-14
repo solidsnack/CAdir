@@ -14,3 +14,9 @@ openssl req -new -newkey rsa:2048 -nodes -keyout key.pem -out req.pem \
 openssl req -new -newkey rsa:2048        -keyout key.pem -out req.pem \
             -subj '/CN=example.com/O=Example Com/C=US/ST=Oregon/L=Portland'
 
+
+# Decrypt private key for later use.
+openssl rsa < ./private/cakey.pem > ./private/cakey.plaintext.pem
+
+
+
