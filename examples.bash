@@ -16,7 +16,12 @@ openssl req -new -newkey rsa:2048        -keyout key.pem -out req.pem \
 
 
 # Decrypt private key for later use.
-openssl rsa < ./private/cakey.pem > ./private/cakey.plaintext.pem
+openssl rsa < ./demoCA/private/cakey.pem > ./demoCA/private/cakey.plaintext.pem
 
+# Does not work. No Error message.
+openssl ca -out ./out.crt < ./req.pem
 
+# Sig a cert with CA.pl.
+cp req.pem newreq.pem
+../CA.pl -sign
 
