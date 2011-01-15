@@ -74,7 +74,7 @@ function perform_request {
   local txt
   case "${CAdirOP[0]}" in
     #sign) outOK 'sign' ;;
-    cert) txt=$(cat ./cacert.pem) ;;
+    cert) txt=$(cat ./demoCA/cacert.pem) ;;
     *)    CAdirERR='Bad request.' ; return 1 ;;
   esac
   if [[ 0 != $? ]]
