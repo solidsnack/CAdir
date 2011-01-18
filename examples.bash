@@ -25,3 +25,8 @@ openssl ca -out ./out.crt < ./req.pem
 cp req.pem newreq.pem
 ../CA.pl -sign
 
+# Sign a cert in a reasonable and transparent way.
+cat req.pem | openssl x509 -req -CA ./demoCA/cacert.pem \
+                                -CAkey ./demoCA/private/cakey.plaintext.pem \
+                                -CAserial x.srl -CAcreateserial
+
