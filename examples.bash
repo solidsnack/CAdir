@@ -21,7 +21,7 @@ openssl rsa < ./demoCA/private/cakey.pem > ./demoCA/private/cakey.plaintext.pem
 # Does not work. No Error message.
 openssl ca -out ./out.crt < ./req.pem
 
-# Sig a cert with CA.pl.
+# Sign a cert with CA.pl.
 cp req.pem newreq.pem
 ../CA.pl -sign
 
