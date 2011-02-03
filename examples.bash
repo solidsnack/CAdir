@@ -30,3 +30,8 @@ cat req.pem | openssl x509 -req -CA ./demoCA/cacert.pem \
                                 -CAkey ./demoCA/private/cakey.plaintext.pem \
                                 -CAserial x.srl -CAcreateserial
 
+# Create a CA cert and key.
+openssl req -new -newkey rsa:2048 -nodes -x509 -days 1095 \
+            -keyout ca.key -out ca.crt \
+            -subj '/CN=example.com/O=Example Com/C=US/ST=Oregon/L=Portland'
+
