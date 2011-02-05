@@ -12,28 +12,44 @@
    ----------------------------------------------------------------------------
 
     <request>     = sign :<request bytes>     # Sign the request.
-                  | sign CA :<request bytes>  # Sign as a subordinate CA.
-                  | crl                       # Get the CRL.
                   | cert                      # Get the CA cert.
 
 
-                                                                    Dir Layout
+                                Creating A Certificate Authority & Using CAdir
    ----------------------------------------------------------------------------
 
-    Dir layout should be close to the default layout of OpenSSL's CA tools.
-    One additional directory is created in the CA's directory, `CAdir', that
-    contains locks, logs and configuration.
+    To create a certificate authority with OpenSSL is easy, if hard to uncover:
 
-      demoCA/CAdir/log
-                  /lock
-                  /syslog     # Log to syslog if this file contains "true".
+      openssl req -new -newkey rsa:2048 -x509 -days 1095 \
+                  -keyout ca.key -out ca.crt \
+                  -subj '/CN=example.com/O=ECom/C=US/ST=Oregon/L=Portland'
 
-    If the directory `conf' exists, either in the CA's directory or under
-    `CAdir', it is searched for files with names like `extensions' and other
-    CA sounding names; these are used as options for the requests based on
-    their names.
+    It will ask you to enter a password for your key; this is a good
+    practice. When you deploy CAdir, unencrypt your key:
 
-      demoCA/conf/extensions
-                 /openssl.cnf
-                 /...other OpenSSL files...
+      openssl rsa < ./ca.key > ./ca.plain.key
+
+    CAdir will prefer a file called `ca.plain.key' if it exists. Otherwise, it
+    uses `ca.key'. Now create a new private key and certificate signing
+    request:
+
+      openssl req -new -newkey rsa:2048 -nodes -keyout mail.key -out mail.csr \
+                  -subj '/CN=mail.example.com/O=ECom/C=US/ST=Oregon/L=Portland'
+
+    Here, you are creating a key for your mail server. The `nodes' option
+    causes OpenSSL to skip asking you to encrypt the key (probably okay for
+    your mail server).
+
+    Let's sign the certificate signing request to get a signed cert:
+
+      (echo -n 'sign :' ; cat ./mail.csr) | CAdir ./ | sed 1d > ./mail.crt
+
+    (We strip off the first line with Sed because that is CAdir's status
+    message.) Look upon your cert, marvel at its beauty:
+
+      openssl x509 -text < ./mail.crt
+
+    CAdir has a bunch of things to say, which it will put on STDOUT. Much of
+    this info is placed in ./CAdir/log, as well. CAdir has an option to log to
+    syslog, too.
 

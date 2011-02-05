@@ -70,11 +70,22 @@ function setup_request {
   fi
 }
 
+
 function perform_request {
   local txt
   case "${CAdirOP[0]}" in
-    #sign) outOK 'sign' ;;
-    cert) txt=$(cat ./demoCA/cacert.pem) ;;
+    sign) cat > ./input
+          local key=$([[ -f ca.plain.key ]] && echo ca.plain.key ||
+                                               echo ca.key          )
+          if openssl x509 -req -CAserial ./serial -CAcreateserial \
+                               -CA ./ca.crt -CAkey ./"$key"       \
+                               -in ./input -out ./output
+          then
+            txt=$(cat ./output)
+          else
+            CAdirERR='Could not sign.' ; return 1
+          fi ;;
+    cert) txt=$(cat ./ca.crt) ;;
     *)    CAdirERR='Bad request.' ; return 1 ;;
   esac
   if [[ 0 != $? ]]
