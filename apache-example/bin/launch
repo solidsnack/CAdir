@@ -1,4 +1,21 @@
 #!/bin/bash
 
-apache2 -X -f ./etc/httpd.conf
+function launch {
+  if [[ ${PORT:-} ]]
+  then
+    echo "Launching Apache2 on localhost:$PORT"
+  else
+    export PORT=3000
+    echo "Var \$PORT is not set; launching Apache2 on localhost:$PORT"
+  fi 1>&2
+  apache2 -X -f ./etc/httpd.conf
+}
+
+TOKEN=8201a92fe189d3c22b7248568b8b0561
+if fgrep -q $TOKEN "$0"
+then
+  set -o nounset -o errexit -o pipefail
+  cd $(dirname "$0")/../
+  launch
+fi
 
