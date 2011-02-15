@@ -1,0 +1,4 @@
+#!/bin/bash
+
+apache2 -X -f ./etc/httpd.conf
+

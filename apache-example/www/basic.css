@@ -1,0 +1,20 @@
+body {
+  background: black;
+  color: white;
+  font-family: monospace;
+  text-align: center;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, .4)
+}
+a:link, a:visited, a:active {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+a:visited {
+  color: #cccccc;
+}
+a:link, a:hover, a:active {
+  color: #888888;
+}
+
