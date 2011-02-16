@@ -12,6 +12,11 @@ function req_send {
   _ssh -i ./ca-connector
 }
 
+function get_CAcert {
+  export SSH_AUTH_SOCK=''
+  _ssh -i ./ca-connector <<<'cert'
+}
+
 function _ssh {
   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
       ubuntu@ec2-50-17-37-221.compute-1.amazonaws.com "$@"
@@ -24,6 +29,7 @@ then
   case "${1:-}" in
     ssh)            shift ; _ssh "$@" ;;
     req_send)       shift ; req_send "$@" ;;
+    cert)           get_CAcert ;;
     new)            shift ; new_signed_cert "$@" ;;
     *)    echo "Unhandled argument." 1>&2 ;;
   esac
