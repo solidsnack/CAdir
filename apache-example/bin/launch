@@ -9,7 +9,10 @@ function launch {
     echo "Var \$PORT is not set; launching Apache2 on localhost:$PORT"
   fi 1>&2
   mkdir -p ./tmp ./log
-  apache2 -X -f ./etc/httpd.conf
+  case $# in
+    0)    apache2 -X -f ./etc/httpd.conf ;;
+    *)    apache2    -f ./etc/httpd.conf "$@" ;;
+  esac
 }
 
 TOKEN=8201a92fe189d3c22b7248568b8b0561
@@ -17,6 +20,6 @@ if fgrep -q $TOKEN "$0"
 then
   set -o nounset -o errexit -o pipefail
   cd $(dirname "$0")/../
-  launch
+  launch "$@"
 fi
 
