@@ -16,3 +16,13 @@
  :; url=https://localhost:3000/secure/
  :; curl --insecure $url --key ./x.key --cert ./x.crt
 
+  To validate the web server, the client needs the CA cert; it can be obtained
+  this way:
+
+ :; echo 'cert' | SSH_AUTH_SOCK='' ssh -i $ssh_key $host > res
+ :; sed 1d ./res > ca.crt
+
+  Validation of the server is omitted in this example; it requires use of a
+  proper DNS name or SNI.
+
+
