@@ -1,4 +1,5 @@
 body {
+  font-size: 40px;
   background: black;
   color: white;
   font-family: monospace;
@@ -12,7 +13,7 @@ a:hover {
   text-decoration: underline;
 }
 a:visited {
-  color: #cccccc;
+  color: #aaaaaa;
 }
 a:link, a:hover, a:active {
   color: #888888;
