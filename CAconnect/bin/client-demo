@@ -1,0 +1,31 @@
+#!/bin/bash
+
+function new_signed_cert {
+  openssl req -new -newkey rsa:2048 -nodes -keyout "$1".key -out "$1".csr \
+              -subj "/CN=$1.example.com/O=ECom/C=US/ST=Oregon/L=Portland"
+  (echo -n 'sign :' ; cat ./"$1".csr) | req_send > $1.res
+  sed 1d ./"$1".res > "$1".crt
+}
+
+function req_send {
+  export SSH_AUTH_SOCK=''
+  _ssh -i ./ca-connector
+}
+
+function _ssh {
+  ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+      ubuntu@ec2-50-17-37-221.compute-1.amazonaws.com "$@"
+}
+
+TOKEN=f94fbc352952da5f5d27af96b48e99b9
+if fgrep -q $TOKEN "$0"
+then
+  set -o nounset -o errexit -o pipefail
+  case "${1:-}" in
+    ssh)            shift ; _ssh "$@" ;;
+    req_send)       shift ; req_send "$@" ;;
+    new)            shift ; new_signed_cert "$@" ;;
+    *)    echo "Unhandled argument." 1>&2 ;;
+  esac
+fi
+

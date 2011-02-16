@@ -1,0 +1,18 @@
+
+  In bin, there is an example script that connects to the demo CA server.
+  Here is an example of commands you might use (very similar to the script):
+
+ :; openssl req -new -newkey rsa:2048 -nodes -keyout x.key -out x.csr \
+                -subj '/CN=x.example.com/O=ECom/C=US/ST=Oregon/L=Portland'
+ :; host=ubuntu@ec2-50-17-37-221.compute-1.amazonaws.com
+ :; ssh_key=./ca-connector
+ :; ( echo -n 'sign :' ; cat ./x.csr) | SSH_AUTH_SOCK='' ssh -i $ssh_key \
+                                                             $host > res
+ :; sed 1d ./res > x.crt
+
+  With your new cert/key pair, you can connect to a web server that is using
+  SSL authentication:
+
+ :; url=https://localhost:3000/secure/
+ :; curl --insecure $url --key ./x.key --cert ./x.crt
+
