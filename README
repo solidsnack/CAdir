@@ -14,6 +14,10 @@
     <request>     = sign :<request bytes>     # Sign the request.
                   | cert                      # Get the CA cert.
 
+    Someday, I will add `crl' so you can obtain the certificate revocation
+    list. Also, I need to write a "CAadmin" script that automates actions that
+    an administrator of the certificate authority can do.
+
 
                                 Creating A Certificate Authority & Using CAdir
    ----------------------------------------------------------------------------
@@ -52,4 +56,23 @@
     CAdir has a bunch of things to say, which it will put on STDOUT. Much of
     this info is placed in ./CAdir/log, as well. CAdir has an option to log to
     syslog, too.
+
+
+                                          Using CAdir As An SSH Forced Command
+   ----------------------------------------------------------------------------
+
+    The CAdir command is meant to be used as an SSH forced command. It
+    carefully handles both input and output to prevent the underlying system
+    from being compromised.
+
+    Here is an example of an authorized_keys file with CAdir as a forced
+    command for one of the keys:
+
+      ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAorDE3jQONw+sixlnuJ3d2qlqi0KLUyPohT86ZOBKtJPeRQ082/DJ1qSVI1c/hnPEIU7ymbKcOWT5fP1kaBRv4jOKzQYwZb083rBr5kv50F3HgOnTWs/9Z1b80+Bn69N/BcQmwTlgKBv3FQ+8vjtJ1Q1X3++pgUBRm5aD3JyCcLGPVJHPlLTbXEoYGJUBxZb58pw+PbH+FyakaRN8xTSrOg1BygvQpFrBIVRlyFgtPKBOruWYTv05M645q6/MTmfeBlQYFzTJz8yqub6EWy2dHlQjMkQgO+3sbgBCe3J+ikm4RoVGO5CXnXLQXtyKzbMnumapjwx7TaaegUDZIDSvyw== jason
+
+      command="~/CAdir/bin/CAdir ~/ca --syslog" ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAqAFL/UT+YhKObrXpMQM2BbS7LmCLXBcE9UrgLFuDNAGltnRxB17lCyXtJJivqV5pZApUHNL8XC21d7sy+I5oUgxwpwgL53foEB2G8BLlzEPGcBA47lpeMiW2OrfXsuUDk8oBlV5/3SNQ2rhEUVWzXEk0mHPtRe99HYEsGK4F3mgpEiuenf20qYiEkhLGDJB2u5N8aTuoI7vIklxejMXXJRSUvg9xbCnLSsDkFvElLS7cmhAu1zAwf03tZia5pC+ZRIHMQP5tihhqOzuLW1fENmq3v39hAFVVu7FRHcztm3v8iON56If6GZIFx3WH18OPBdrySfTl8fAmNz9o/HCBaQ== ca-connector
+
+    You can distribute the private part of the key pair wherever you like and
+    (crosses fingers) the holder can sign certs but can not access the CA's
+    private key directly.
 
