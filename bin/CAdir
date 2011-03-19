@@ -74,14 +74,14 @@ function setup_request {
 function perform_request {
   local txt
   case "${CAdirOP[0]}" in
-    sign) cat > ./input
+    sign) cat > ./CAdir/input
           local key=$([[ -f ca.plain.key ]] && echo ca.plain.key ||
                                                echo ca.key          )
           if openssl x509 -req -CAserial ./serial -CAcreateserial \
                                -CA ./ca.crt -CAkey ./"$key"       \
-                               -in ./input -out ./output
+                               -in ./CAdir/input -out ./CAdir/output
           then
-            txt=$(cat ./output)
+            txt=$(cat ./CAdir/output)
           else
             CAdirERR='Could not sign.' ; return 1
           fi ;;
