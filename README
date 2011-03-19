@@ -78,7 +78,7 @@
    ----------------------------------------------------------------------------
 
     An example: setup a certificate authority, sign a CSR, revoke the cert
-    fetch the CRL.
+    and fetch the CRL.
 
       CAdir.admin setup ./foo
       (echo sign ; cat mail.csr) | CAdir ./foo | sed 1d > mail.crt
