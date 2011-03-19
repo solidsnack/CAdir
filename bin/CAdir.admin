@@ -1,0 +1,225 @@
+#!/bin/bash
+function usage {
+cat <<USAGE
+ USAGE: CAdir.admin setup (--openssl.cnf <file>) <directory>
+        CAdir.admin revoke (<serial number>|cn=<common name>) <directory>
+
+  A script to perform administrative tasks on the given CA directory.
+
+  In the first form, sets up the directory and a basic openssl.cnf that is
+  compatible with OpenSSL's \`ca' subcommand.
+
+  In the second form, revokes a cert according to serial number or common
+  name.
+USAGE
+}
+
+
+awaiting_conf=false
+awaiting_revoke_target=false
+declare -A CAdir=( [root]="./" [task]="" [openssl_conf]="" )
+declare -a CAdirOP=()
+d=CAdir
+function stamp      {           date --utc +%FT%T.%4NZ                       ;}
+function msg        {           printf "%s\n" "$1" 1>&2                      ;}
+function info       {           msg "$1"                                     ;}
+function err        {           msg "$1" ; return 1                          ;}
+function locktee    {           flock -w 0.5 -x ./$d/log tee -a ./$d/log     ;}
+function syslog     {           logger -i -t CAdir.admin -p user.info        ;}
+
+
+function set_task_once {
+  case "${CAdir[task]}" in
+    '')   CAdir[task]="$1" ;;
+    *)    err "More than one task specified." ;;
+  esac
+}
+
+
+function set_op_once {
+  case "${#CAdirOP[@]}" in
+    0)    CAdirOP=( "$@" ) ;;
+    *)    err "More than one task specified." ;;
+  esac
+}
+
+
+function process_args {
+  while [[ "${1:-}" != "" ]]
+  do
+    if $awaiting_conf
+    then
+      case "${1:-}" in
+        /*|~/*|./*|../*)                CAdir[openssl_conf]="$1" ;;
+        *)                              err "Bad path for OpenSSL conf." ;;
+      esac
+      awaiting_conf=false
+      shift ; continue
+    fi
+    if $awaiting_revoke_target
+    then
+      if [[ "${1:-}" =~ ^(cn=.+|[0-9]+)$ ]]
+      then
+        set_op_once revoke "$1"
+        awaiting_revoke_target=false
+        shift ; continue
+      fi
+    fi
+    case "${1:-}" in
+      -h|'-?'|--help)                   usage ; exit 0 ;;
+      --openssl.cnf)                    awaiting_conf=true ;;
+      /*|~/*|./*|../*)                  CAdir[root]="$1" ;;
+      setup)                            set_task_once $1 ;;
+      revoke)                           set_task_once $1
+                                        awaiting_revoke_target=true ;;
+    esac
+    shift
+  done
+}
+
+
+function check_if_cert_CN_matches {
+  file="$1"
+  cn="$2"
+  # Subject: C=US, ST=Oregon, L=Portland, O=ECom, CN=mail.example.com
+  s=$(sed -rn '/^ +Subject: .+ CN\=([^=]+)$/ { s//\1/ ; p }' "$file")
+  [[ $s = $cn ]]
+}
+
+
+function revoke {
+  case "$1" in
+    cn=*) for f in ./certs/*.pem
+          do
+            if check_if_cert_CN_matches "$f" "${1#cn=}"
+            then
+              base=$(basename "$f")
+              revoke "${base%.pem}"
+            fi
+          done ;;
+    *)    openssl ca -config ./openssl.cnf -utf8 -revoke ./certs/"$1".pem \
+                     -crl_reason cessationOfOperation ;;
+  esac
+}
+
+
+function perform_admin_action {
+  local user="$(whoami)"
+  local banner="-- -- -- -- admin action -- -- -- --" 
+  [[ -n "${CAdir[root]}" ]] || err "No CA dir given."
+  cd "${CAdir[root]}"
+  [[ -d ./$d ]] || { info "Creating \`./$d'." ; mkdir -p ./$d ;}
+  local dir=$(pwd -P)
+  info "Locking \`$dir/$d/log'."
+  { info "((( $banner began: $(stamp)"
+    info "user: $user"
+    "${CAdirOP[@]}" || info "Error!"
+    info "))) $banner ended: $(stamp)" ;} 2>&1 | locktee
+  info "Unlocked."
+}
+
+
+declare -A state=( [database]=./state/index.txt
+                   [new_certs_dir]=./certs
+                   [serial]=./state/serial       )
+function pretty_print_state {
+for key in $(printf '%s\n' "${!state[@]}" | sort)
+do
+  printf '%-28s =  %s\n' "$key" "${state[$key]}"
+done
+}
+
+
+function write_default_openssl_conf {
+cat <<CNF
+default_ca                   =  CA_epoch
+
+[ CA_epoch ] # Sign certs until the end of the epoch, 2038-01-19T03:14:08Z.
+dir                          =  ./
+certificate                  =  ./ca.crt
+private_key                  =  ./ca.key
+policy                       =  policy_anything
+x509_extensions              =  user_ext
+default_enddate              =  380119031408Z
+default_md                   =  sha1
+unique_subject               =  yes  # No rollover, ever.
+preserve                     =  no
+default_crl_hours            =  336  # 14 days.
+name_opt                     =  ca_default
+cert_opt                     =  ca_default
+copy_extensions              =  none
+$(pretty_print_state)
+
+[ CA_fortnight ] # Sign certs for a fortnight.
+dir                          =  ./
+certificate                  =  ./ca.crt
+private_key                  =  ./ca.key
+policy                       =  policy_anything
+x509_extensions              =  user_ext
+default_days                 =  14
+default_md                   =  sha1
+unique_subject               =  no   # Eases rollover.
+preserve                     =  no
+default_crl_hours            =  336  # 14 days.
+name_opt                     =  ca_default
+cert_opt                     =  ca_default
+copy_extensions              =  none
+$(pretty_print_state)
+
+[ policy_anything ]
+countryName                  =  optional
+stateOrProvinceName          =  optional
+localityName                 =  optional
+organizationName             =  optional
+organizationalUnitName       =  optional
+commonName                   =  supplied
+emailAddress                 =  optional
+
+[ user_ext ]
+basicConstraints             =  CA:FALSE
+subjectKeyIdentifier         =  hash
+authorityKeyIdentifier       =  keyid,issuer
+#nsComment                   =  "OpenSSL Generated Certificate"
+
+[ ca_ext ]
+basicConstraints             =  CA:TRUE
+#basicConstraints            =  critical,CA:true
+subjectKeyIdentifier         =  hash
+authorityKeyIdentifier       =  keyid:always,issuer:always
+
+[ crl_ext ]
+authorityKeyIdentifier       =  keyid:always,issuer:always
+CNF
+}
+
+
+function setup {
+  dir="$1"
+  openssl_conf="${2:-}"
+  mkdir -p "$dir"
+  cd "$dir"
+  [[ ! -d ./$d ]] || err "Failing: \`$(pwd -P)/$d' already exists."
+  mkdir ./$d
+  mkdir -p "${state[new_certs_dir]}"
+  mkdir -p ./state
+  touch ./state/index.txt
+  echo "01" > ./state/serial
+  case "$openssl_conf" in
+    '')   write_default_openssl_conf ;;
+    *)    cat "$openssl_conf" ;;
+  esac > ./openssl.cnf
+}
+
+
+TOKEN=205accf26fe0c0a6dd4fd9ed23c35c462270a82a
+if fgrep -q $TOKEN "$0"
+then
+  set -o nounset -o pipefail -o errexit -o privileged
+  process_args "$@"
+  case ${CAdir[task]} in
+    setup)          setup "${CAdir[root]}" "${CAdir[openssl_conf]}" ;;
+    revoke)         perform_admin_action ;;
+    *)              err "Bad args." ;;
+  esac
+fi
+

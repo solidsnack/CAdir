@@ -11,12 +11,9 @@
                                                               Command Language
    ----------------------------------------------------------------------------
 
-    <request>     = sign :<request bytes>     # Sign the request.
-                  | cert                      # Get the CA cert.
-
-    Someday, I will add `crl' so you can obtain the certificate revocation
-    list. Also, I need to write a "CAadmin" script that automates actions that
-    an administrator of the certificate authority can do.
+    <request>     = sign<nl><request bytes>   # Sign the request.
+                  | crt                       # Get the CA cert.
+                  | crl                       # Obtain an up to date CRL.
 
 
                                 Creating A Certificate Authority & Using CAdir
@@ -75,4 +72,16 @@
     You can distribute the private part of the key pair wherever you like and
     (crosses fingers) the holder can sign certs but can not access the CA's
     private key directly.
+
+
+                                                                   CAdir.admin
+   ----------------------------------------------------------------------------
+
+    An example: setup a certificate authority, sign a CSR, revoke the cert
+    fetch the CRL.
+
+      CAdir.admin setup ./foo
+      (echo sign ; cat mail.csr) | CAdir ./foo | sed 1d > mail.crt
+      CAdir.admin revoke cn=mail.example.com ./foo
+      echo csr | CAdir ./foo | sed 1d > example.crl
 
