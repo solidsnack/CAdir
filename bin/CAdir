@@ -2,24 +2,20 @@
 set -o nounset -o pipefail -o errexit -o privileged
 function usage {
 cat <<USAGE
- USAGE: CAdir setup <directory>
-        CAdir (serve)? (--syslog|--stdout|--quiet)? <directory>
+ USAGE: CAdir (--syslog|--stdout|--quiet)? <directory>
 
-  In the first form, sets up the directory and a CA, in a format similar to
-  CA.pl. In the second form, serves signing and other requests
-
-  Perform CA operations (given on STDIN) on the directory.
+  Serves signing and other requests, received on STDIN, using the certificate
+  authority and metadata in the given directory.
 USAGE
 }
 
-declare -A CAdir=( [root]="" [output]=stdout [task]=serve )
+declare -A CAdir=( [root]="" [output]=stdout )
 while [[ "${1:-}" != "" ]]
 do
   case "${1:-}" in
     -h|'-?'|--help)                     usage ; exit 0 ;;
     --syslog|--stdout|--quiet)          CAdir[output]=${1#--} ;;
     /*|~/*|./*|../*)                    CAdir[root]="$1" ;;
-    serve|setup)                        CAdir[task]=$1 ;;
   esac
   shift
 done
@@ -128,13 +124,15 @@ function serve {
   info "Unlocked."
 }
 
-case ${CAdir[task]} in
-  serve)  exec 3>&1
-          serve 2>&1 1>&3 | case ${CAdir[output]} in
-                              stdout)      cat ;;
-                              syslog)      syslog ;;
-                              quiet)       cat >/dev/null ;;
-                            esac 3>&1 1>&2 ;;
-  setup)  echo 'Not implemented.' ;;
-esac
+
+TOKEN=0fee81f3d3a91f102958bdc7f23aa6a5840a9380
+if fgrep -q $TOKEN "$0"
+then
+  exec 3>&1
+  serve 2>&1 1>&3 | case ${CAdir[output]} in
+                      stdout)      cat ;;
+                      syslog)      syslog ;;
+                      quiet)       cat >/dev/null ;;
+                    esac 3>&1 1>&2
+fi
 
