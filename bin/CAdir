@@ -40,7 +40,7 @@ declare -a CAdirERR
 function setup_request {
   local -a argv
   read -r -n128 -a argv || true # Short, unterminated input; not a problem.
-  if [[ -z "${argv+unset}" ]]
+  if [[ -z "${argv+isset}" ]]
   then
     CAdirERR='Malformed request.'
   else
@@ -56,7 +56,7 @@ function setup_request {
       *)            CAdirERR='Invalid request type.' ;;
     esac
   fi
-  if [[ -z "${CAdirERR:+unset}" ]]
+  if [[ -z "${CAdirERR:+isset}" ]]
   then
     if [[ "$#" = 0 ]]
     then
@@ -108,7 +108,7 @@ function serve {
   fi
   [[ -d ./$d ]] || { info "Creating \`./$d'." ; mkdir -p ./$d ;}
   setup_request
-  [[ -z "${CAdirERR:+unset}" ]] || err "$CAdirERR"
+  [[ -z "${CAdirERR:+isset}" ]] || err "$CAdirERR"
   local dir=$(pwd -P)
   info "Locking \`$dir/$d/log'."
   CAdir[uuid]=$(uuidgen | tr A-F a-f) # Enforce lowercase for Macs.
@@ -121,7 +121,7 @@ function serve {
       outERR "$CAdirERR"
       info "err: $CAdirERR"              ;}
     info "))) ${CAdir[uuid]} ended: $(stamp)"
-    [[ -z "${CAdirERR:+unset}" ]] || exit 1   ;} 2>&1 1>&4 | locktee 4>&1 1>&2
+    [[ -z "${CAdirERR:+isset}" ]] || exit 1   ;} 2>&1 1>&4 | locktee 4>&1 1>&2
   info "Unlocked."
 }
 
