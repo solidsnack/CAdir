@@ -72,17 +72,17 @@ function perform_request {
   local txt
   case "${CAdirOP[0]}" in
     sign) cat > ./CAdir/input
-          key_opt=$( [[ -f ca.plain.key ]] &&
-                     printf '%s' -keyfile ca.plain.key )
+          local key_opt=''
+          [[ ! -f ca.plain.key ]] || key_opt='-keyfile ca.plain.key'
           if openssl ca -config ./openssl.cnf -batch -utf8 $key_opt \
                         -in ./CAdir/input -out ./CAdir/output
           then
-            txt=$(sed -nr '/^-----BEGIN CERTIFICATE-----$/,$ p' ./CAdir/output)
+            txt="$(sed -n '/^-----BEGIN CERTIFICATE-----$/,$ p' ./CAdir/output)"
           else
             CAdirERR='Could not sign.' ; return 1
           fi ;;
-    crt)  txt=$(cat ./ca.crt) ;;
-    crl)  txt=$(openssl ca -config ./openssl.cnf -utf8 -gencrl) ;;
+    crt)  txt="$(cat ./ca.crt)" ;;
+    crl)  txt="$(openssl ca -config ./openssl.cnf -utf8 -gencrl)" ;;
     *)    CAdirERR='Bad request.' ; return 1 ;;
   esac
   if [[ 0 != $? ]]
