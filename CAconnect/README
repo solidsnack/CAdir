@@ -5,9 +5,8 @@
  :; openssl req -new -newkey rsa:2048 -nodes -keyout x.key -out x.csr \
                 -subj '/CN=x.example.com/O=ECom/C=US/ST=Oregon/L=Portland'
  :; host=ubuntu@ec2-50-17-37-221.compute-1.amazonaws.com
- :; ssh_key=./ca-connector
- :; ( echo -n 'sign :' ; cat ./x.csr) | SSH_AUTH_SOCK='' ssh -i $ssh_key \
-                                                             $host > res
+ :; ( echo -n 'sign :' ; cat ./x.csr) |
+    SSH_AUTH_SOCK='' ssh -i ./ca-connector "$host" > res
  :; sed 1d ./res > x.crt
 
   With your new cert/key pair, you can connect to a web server that is using
